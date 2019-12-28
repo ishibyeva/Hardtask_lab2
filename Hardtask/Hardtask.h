@@ -1,6 +1,8 @@
-#include <iostream>
+п»ї#include <iostream>
 #include <stdlib.h>
 #include <math.h>
+#include <iomanip>
+
 
 struct Point
 {
@@ -60,17 +62,20 @@ Point Toch_R(int num, double h, double x)
 
 void RezOsn2(int maxnum, double h00, double xn)
 {
+	double E = 0.005;
 	Point *mas;
 	mas = new Point[maxnum];
 	Point *obh;
 	obh = new Point[maxnum];
-	double *e1 = new double[maxnum];
+	
+	double *e = new double[maxnum]; 
+	double *e1 = new double[maxnum]; 
 	double *e2 = new double[maxnum];
-	e1[0] = 0;
-	e2[0] = 0;
+	 e1[0] = 0;
+	 e2[0] = 0;
 
 	double  x0 = 0.0, h0 = h00, u01 = 7.0, u02 = 13.0;
-	//xn - граница отрезка интегрирования
+	//xn - РіСЂР°РЅРёС†Р° РѕС‚СЂРµР·РєР° РёРЅС‚РµРіСЂРёСЂРѕРІР°РЅРёСЏ
 	int n = maxnum;
 
 
@@ -81,36 +86,81 @@ void RezOsn2(int maxnum, double h00, double xn)
 	t.y2 = u02;
 	mas[0] = t;
 	obh[0] = t;
+	double hrez = 0;
 
 	int i = 1;
 	while (i < n)
 	{
-		Point t1, t2;
+		Point t1, t12, t2;
 
 		//(x(n+1),v(n+1))
 		x0 = mas[i - 1].x;
 		u01 = mas[i - 1].y1;
 		u02 = mas[i - 1].y2;
+		//
+		if (x0 < 0.035)
+		{
+			t1 = metodRKS_N(i, h0, x0, u01, u02);
+			t12 = metodRKS_N(i, h0*0.5, x0, u01, u02);
+			double xx = t12.x, uu1 = t12.y1, uu2 = t12.y2;
+			t2 = metodRKS_N(i, h0*0.5, xx, uu1, uu2);
 
-		t1 = metodRKS_N(i, h0, x0, u01, u02);
-		t2 = Toch_R(i,h0,x0);
-		mas[i] = t1;
-		obh[i] = t2;
-		
-		e1[i] = abs(t2.y1 - t1.y1);
-		e2[i] = abs(t2.y2 - t1.y2);
+			e1[i] = abs(t2.y1 - t1.y1);
+			e2[i] = abs(t2.y2 - t1.y2);
+			double S = abs((e1[i] > e2[i]) ? e1[i] : e2[i]);
 
-		if (t1.x+h0 > xn)
-			break;
-		i++;
+			int p = 2;
+			e[i] = S * pow(2, p);
 
+			if (S < E / (pow(2, p + 1)))
+			{
+				h0 = 2.0 * h0;
+				mas[i] = t1;
+				obh[i] = Toch_R(i, h0, x0);
+
+				if (mas[i].x > xn)
+					break;
+				i++;
+
+			}
+			if (S > E)
+			{
+				h0 = h0 * (0.5);
+
+			}
+			if ((S > E / (pow(2, p + 1))) && (S < E))
+			{
+				mas[i] = t1;
+				obh[i] = Toch_R(i, h0, x0);
+
+				if (mas[i].x > 0.035)
+					break;
+				i++;
+
+
+			}
+		}
+		else
+		{
+			h0 = h00;
+			t1 = metodRKS_N(i, h0, x0, u01, u02);
+			t2= Toch_R(i, h0, x0);
+			e1[i] = abs(t2.y1 - t1.y1);
+			e2[i] = abs(t2.y2 - t1.y2);
+			mas[i] = t1;
+			obh[i] = t2;
+			i++;
+		}
 	}
-
 
 	for (int d = 0; (d < i) && (mas[d].x < xn); d++)
 	{
 
-		std::cout << d << "     " << mas[d].x << "     " << "(" << obh[d].y1 << " ; " << obh[d].y2 << ")" << "			" << "(" << mas[d].y1 << " ; " << mas[d].y2 << ")" << "         " <<"("<< e1[d]<<"__"<<e2[d]<<")"<< std::endl;
+		std::cout << std::setw(7) << std::left<< d  <<std::setw(7) << mas[d].x << std::setw(20) << std::right
+			<< "(" << std::setprecision(7) << obh[d].y1 << " ; " << std::setprecision(7) << obh[d].y2 << ")"
+			<< std::setw(20) << std::right<< "(" << std::setprecision(7) << mas[d].y1 << " ; " << std::setprecision(7) << mas[d].y2 << ")"
+			<< std::setw(20) << std::right
+			<< "("<< std::setprecision(7) << e1[d]<<"__"<< std::setprecision(7) << e2[d]<<")"<< std::endl;
 		std::cout << std::endl;
 	}
 
